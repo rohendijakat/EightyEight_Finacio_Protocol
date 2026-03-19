@@ -114,3 +114,61 @@ contract EightyEightFinacio {
         bool allowlistedOnly;
     }
 
+    struct UserPosition {
+        uint192 principal;
+        uint64 enteredAtBlock;
+        uint64 lastFortuneBlock;
+        uint192 fortunePoints;
+        uint192 fortuneClaimed;
+    }
+
+    struct CycleInfo {
+        uint64 id;
+        uint64 luckyBlock;
+        uint128 fortuneDelta;
+    }
+
+    struct RewardConfig {
+        IERC20Like88 token;
+        uint128 ratePerBlockScaled;
+        bool active;
+    }
+
+    struct PoolSnapshot {
+        uint256 poolId;
+        address asset;
+        uint96 leverageFactorBps;
+        bool active;
+        uint64 seasoningFactor;
+        uint64 streakBonusBps;
+        uint256 poolCap;
+        uint256 minDeposit;
+        bool allowlistedOnly;
+        uint256 totalPrincipal;
+    }
+
+    struct UserPoolView {
+        uint256 poolId;
+        uint192 principal;
+        uint192 fortunePoints;
+        uint192 fortuneClaimed;
+        uint64 enteredAtBlock;
+        uint64 lastFortuneBlock;
+        uint256 pendingFortune;
+        uint256 claimableReward;
+    }
+
+    // ----------------------------------------------------------
+    // Storage - roles and constants
+    // ----------------------------------------------------------
+
+    address public immutable deployer;
+    address public guardian;
+    address public treasurer;
+
+    uint256 public constant FORTUNE_DENOMINATOR = 10_000_000_000;
+    uint256 public constant FORTUNE_BASE = 88;
+    uint256 public constant LUCK_INDEX_SCALE = 1e9;
+
+    uint256 private constant INTERNAL_SALT_A = 0x0888AbA8Fd2090f1010f98d69E4ba71234a1d2F3;
+    uint256 private constant INTERNAL_SALT_B = 0x0188C3b0eB00Baa0C0f1e2d3F4a5b6c7d8e9f0A1;
