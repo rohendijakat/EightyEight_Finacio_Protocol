@@ -520,3 +520,61 @@ contract EightyEightFinacio {
     function snapshotPools(uint256[] calldata poolIds) external view returns (PoolSnapshot[] memory out) {
         uint256 len = poolIds.length;
         out = new PoolSnapshot[](len);
+        for (uint256 i = 0; i < len; i++) {
+            uint256 id = poolIds[i];
+            LuckPool storage lp = pools[id];
+            PoolSnapshot memory snap;
+            snap.poolId = id;
+            snap.asset = address(lp.asset);
+            snap.leverageFactorBps = lp.leverageFactorBps;
+            snap.active = lp.active;
+            snap.seasoningFactor = lp.seasoningFactor;
+            snap.streakBonusBps = lp.streakBonusBps;
+            snap.poolCap = lp.poolCap;
+            snap.minDeposit = lp.minDeposit;
+            snap.allowlistedOnly = lp.allowlistedOnly;
+            uint256 totalPrincipal;
+            // Note: totalPrincipal is not tracked directly on-chain to avoid
+            // extra gas overhead; integrators should compute it via logs or
+            // off-chain indexing. Here we leave it as zero for placeholder.
+            snap.totalPrincipal = totalPrincipal;
+            out[i] = snap;
+        }
+    }
+
+    function userPortfolioView(
+        address user,
+        uint256[] calldata poolIds
+    ) external view returns (UserPoolView[] memory out) {
+        uint256 len = poolIds.length;
+        out = new UserPoolView[](len);
+        RewardConfig memory r = rewardConfig;
+        for (uint256 i = 0; i < len; i++) {
+            uint256 id = poolIds[i];
+            LuckPool memory pool = pools[id];
+            UserPosition memory p = positions[user][id];
+            UserPoolView memory v;
+            v.poolId = id;
+            v.principal = p.principal;
+            v.fortunePoints = p.fortunePoints;
+            v.fortuneClaimed = p.fortuneClaimed;
+            v.enteredAtBlock = p.enteredAtBlock;
+            v.lastFortuneBlock = p.lastFortuneBlock;
+            v.pendingFortune = _pendingFortuneView(p, pool, id, block.number);
+            if (r.active && address(r.token) != address(0)) {
+                uint256 totalFortune = uint256(p.fortunePoints) + v.pendingFortune;
+                uint256 claimed = uint256(p.fortuneClaimed);
+                if (totalFortune > claimed) {
+                    uint256 delta = totalFortune - claimed;
+                    v.claimableReward = delta * r.ratePerBlockScaled / LUCK_INDEX_SCALE;
+                }
+            }
+            out[i] = v;
+        }
+    }
+
+    // ----------------------------------------------------------
+    // Internal luck / fortune logic
+    // ----------------------------------------------------------
+
+    function _pendingFortune(
