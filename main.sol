@@ -230,3 +230,61 @@ contract EightyEightFinacio {
     modifier breakerGuard() {
         if (circuitBreaker) revert State88_CircuitBreaker();
         _;
+    }
+
+    // ----------------------------------------------------------
+    // Admin / Governance
+    // ----------------------------------------------------------
+
+    function rotateGuardian(address newGuardian) external onlyGuardian {
+        if (newGuardian == address(0)) revert Param88_Invalid();
+        address previous = guardian;
+        guardian = newGuardian;
+        emit GuardianRotated(previous, newGuardian, block.number);
+    }
+
+    function rotateTreasurer(address newTreasurer) external onlyGuardian {
+        if (newTreasurer == address(0)) revert Param88_Invalid();
+        address previous = treasurer;
+        treasurer = newTreasurer;
+        emit TreasurerRotated(previous, newTreasurer, block.number);
+    }
+
+    function setFortuneIndex(uint256 newIndex) external onlyGuardian {
+        if (newIndex == 0 || newIndex > LUCK_INDEX_SCALE * 8_888) revert Param88_Invalid();
+        uint256 previous = fortuneIndex;
+        fortuneIndex = newIndex;
+        emit FortuneIndexUpdated(previous, newIndex, block.number);
+    }
+
+    function configurePool(
+        uint256 poolId,
+        address asset,
+        uint96 leverageFactorBps,
+        bool active
+    ) external onlyGuardian {
+        if (asset == address(0) || leverageFactorBps < 100 || leverageFactorBps > 88_888) {
+            revert Param88_Invalid();
+        }
+        if (poolId == 0) {
+            poolId = ++nextPoolId;
+        } else if (poolId > nextPoolId) {
+            nextPoolId = poolId;
+        }
+
+        LuckPool storage lp = pools[poolId];
+        lp.asset = IERC20Like88(asset);
+        lp.leverageFactorBps = leverageFactorBps;
+        lp.active = active;
+
+        emit PoolConfigured(poolId, asset, leverageFactorBps, active);
+    }
+
+    function updatePoolSeasoning(
+        uint256 poolId,
+        uint64 seasoningFactor,
+        uint64 streakBonusBps
+    ) external onlyGuardian {
+        LuckPool storage pool = pools[poolId];
+        if (address(pool.asset) == address(0)) revert Config88_InvalidPool();
+        pool.seasoningFactor = seasoningFactor;
