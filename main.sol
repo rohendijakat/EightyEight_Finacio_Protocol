@@ -578,3 +578,61 @@ contract EightyEightFinacio {
     // ----------------------------------------------------------
 
     function _pendingFortune(
+        UserPosition storage p,
+        LuckPool memory pool,
+        uint256 poolId
+    ) internal view returns (uint256) {
+        return _pendingFortuneView(p, pool, poolId, block.number);
+    }
+
+    function _pendingFortuneView(
+        UserPosition memory p,
+        LuckPool memory pool,
+        uint256 poolId,
+        uint256 blockNumber
+    ) internal view returns (uint256) {
+        if (!pool.active || p.principal == 0 || p.lastFortuneBlock == 0 || blockNumber <= p.lastFortuneBlock) {
+            return 0;
+        }
+
+        uint256 blocksHeld = blockNumber.sub(p.lastFortuneBlock);
+        uint256 leverage = uint256(pool.leverageFactorBps);
+        uint256 scaledPrincipal = uint256(p.principal).mul(leverage);
+
+        uint256 stochastic = uint256(keccak256(abi.encodePacked(
+            INTERNAL_SALT_A,
+            INTERNAL_SALT_B,
+            INTERNAL_SALT_C,
+            poolId,
+            p.enteredAtBlock,
+            p.lastFortuneBlock,
+            blockhash(p.lastFortuneBlock)
+        ))) % FORTUNE_DENOMINATOR;
+
+        uint256 luckIntensity = fortuneIndex.add(FORTUNE_BASE * LUCK_INDEX_SCALE).add(stochastic);
+
+        uint256 seasoningBoost = 1;
+        if (pool.seasoningFactor != 0) {
+            uint256 ageBlocks = blockNumber.sub(p.enteredAtBlock == 0 ? p.lastFortuneBlock : p.enteredAtBlock);
+            seasoningBoost = 1 + (ageBlocks / (uint256(pool.seasoningFactor) + 1));
+        }
+
+        uint256 streakBoostBps = pool.streakBonusBps;
+        uint256 boostFactorBps = 10_000 + streakBoostBps;
+
+        uint256 raw = scaledPrincipal
+            .mul(blocksHeld)
+            .mul(luckIntensity)
+            .mul(seasoningBoost)
+            .mul(boostFactorBps)
+            .div(LUCK_INDEX_SCALE)
+            .div(FORTUNE_DENOMINATOR)
+            .div(10_000);
+
+        return raw;
+    }
+
+    // ----------------------------------------------------------
+    // Luck cycle advancement
+    // ----------------------------------------------------------
+
