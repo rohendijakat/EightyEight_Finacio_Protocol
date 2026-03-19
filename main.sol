@@ -288,3 +288,61 @@ contract EightyEightFinacio {
         LuckPool storage pool = pools[poolId];
         if (address(pool.asset) == address(0)) revert Config88_InvalidPool();
         pool.seasoningFactor = seasoningFactor;
+        pool.streakBonusBps = streakBonusBps;
+        emit PoolSeasoningUpdated(poolId, seasoningFactor, streakBonusBps);
+    }
+
+    function setPoolLimits(
+        uint256 poolId,
+        uint256 poolCap,
+        uint256 minDeposit,
+        bool allowlistedOnly
+    ) external onlyGuardian {
+        LuckPool storage pool = pools[poolId];
+        if (address(pool.asset) == address(0)) revert Config88_InvalidPool();
+        pool.poolCap = poolCap;
+        pool.minDeposit = minDeposit;
+        pool.allowlistedOnly = allowlistedOnly;
+    }
+
+    function setGlobalAllowlist(address account, bool allowed) external onlyGuardian {
+        isGlobalAllowlisted[account] = allowed;
+    }
+
+    function setPoolAllowlist(
+        uint256 poolId,
+        address account,
+        bool allowed
+    ) external onlyGuardian {
+        LuckPool storage pool = pools[poolId];
+        if (address(pool.asset) == address(0)) revert Config88_InvalidPool();
+        isPoolAllowlisted[poolId][account] = allowed;
+    }
+
+    function tripCircuitBreaker() external onlyGuardian {
+        circuitBreaker = true;
+        emit CircuitBreakerTripped(msg.sender, block.number);
+    }
+
+    function restoreCircuitBreaker() external onlyGuardian {
+        circuitBreaker = false;
+        emit CircuitBreakerRestored(msg.sender, block.number);
+    }
+
+    function sweepTreasury(address to, uint256 amount, uint256 poolId) external onlyTreasurer {
+        if (to == address(0)) revert Param88_Invalid();
+        LuckPool memory pool = pools[poolId];
+        if (!pool.active) revert Config88_PoolInactive();
+
+        if (!pool.asset.transfer(to, amount)) {
+            revert Token88_TransferFailed();
+        }
+        emit TreasurySweep(msg.sender, to, amount, block.number);
+    }
+
+    function setRewardStream(
+        address token,
+        uint128 ratePerBlockScaled,
+        bool active
+    ) external onlyTreasurer {
+        rewardConfig = RewardConfig({
