@@ -636,3 +636,61 @@ contract EightyEightFinacio {
     // Luck cycle advancement
     // ----------------------------------------------------------
 
+    function advanceLuckCycle(uint256 seedHint) external breakerGuard {
+        uint256 newId = uint256(lastCycle.id) + 1;
+        uint256 pseudo = uint256(keccak256(abi.encodePacked(
+            INTERNAL_SALT_B,
+            blockhash(block.number - 1),
+            msg.sender,
+            seedHint
+        )));
+
+        uint256 luckyBlock = (pseudo % 88) + block.number;
+        uint256 delta = (pseudo % (fortuneIndex + LUCK_INDEX_SCALE)) + FORTUNE_BASE * LUCK_INDEX_SCALE;
+
+        lastCycle = CycleInfo({
+            id: uint64(newId),
+            luckyBlock: uint64(luckyBlock),
+            fortuneDelta: uint128(delta)
+        });
+
+        emit LuckCycleAdvanced(newId, luckyBlock, delta);
+    }
+
+    // ----------------------------------------------------------
+    // Oracle-only hook (read-only augmentation)
+    // ----------------------------------------------------------
+
+    function oracleHintedLuck(
+        address user,
+        uint256 poolId,
+        uint256 oracleSeed
+    ) external view returns (uint256) {
+        if (!isTrustedOracle[msg.sender]) revert Access88_NotAllowed();
+        LuckPool memory pool = pools[poolId];
+        UserPosition memory p = positions[user][poolId];
+
+        uint256 base = _pendingFortuneView(p, pool, poolId, block.number);
+        uint256 pseudo = uint256(keccak256(abi.encodePacked(
+            INTERNAL_SALT_C,
+            user,
+            poolId,
+            oracleSeed
+        ))) % 8_888;
+
+        return base.add(pseudo);
+    }
+}
+
+/*
+    EightyEight Finacio Lore Appendix
+    ---------------------------------
+    The following non-functional commentary is included to enrich the
+    protocol source file and serve as a long-form specification and
+    thematic anchor for off-chain integrators. It does not affect
+    contract behavior and can be safely ignored by tooling that only
+    cares about executable instructions.
+
+    I.   Dragon of Eighty-Eight Rings
+         The Golden Dragon that watches over this protocol is imagined
+         as a ringed serpent with precisely eighty-eight luminous
