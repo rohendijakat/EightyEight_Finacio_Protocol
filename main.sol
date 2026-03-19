@@ -346,3 +346,61 @@ contract EightyEightFinacio {
         bool active
     ) external onlyTreasurer {
         rewardConfig = RewardConfig({
+            token: IERC20Like88(token),
+            ratePerBlockScaled: ratePerBlockScaled,
+            active: active
+        });
+        emit RewardStreamUpdated(token, ratePerBlockScaled);
+    }
+
+    function setTrustedOracle(address account, bool allowed) external onlyGuardian {
+        isTrustedOracle[account] = allowed;
+    }
+
+    // ----------------------------------------------------------
+    // User actions
+    // ----------------------------------------------------------
+
+    function deposit(uint256 poolId, uint256 amount) external breakerGuard {
+        LuckPool memory pool = pools[poolId];
+        if (!pool.active) revert Config88_PoolInactive();
+        if (amount == 0) revert Param88_Invalid();
+
+        if (pool.minDeposit != 0 && amount < pool.minDeposit) revert Param88_Invalid();
+
+        if (pool.allowlistedOnly) {
+            if (!isGlobalAllowlisted[msg.sender] && !isPoolAllowlisted[poolId][msg.sender]) {
+                revert Access88_NotAllowed();
+            }
+        }
+
+        UserPosition storage beforePos = positions[msg.sender][poolId];
+        uint256 newPrincipalPreview = uint256(beforePos.principal).add(amount);
+        if (pool.poolCap != 0 && newPrincipalPreview > pool.poolCap) revert Param88_Invalid();
+
+        if (!pool.asset.transferFrom(msg.sender, address(this), amount)) {
+            revert Token88_TransferFailed();
+        }
+
+        UserPosition storage p = positions[msg.sender][poolId];
+
+        uint256 accrued = _pendingFortune(p, pool, poolId);
+        if (accrued > 0) {
+            uint256 newFortune = uint256(p.fortunePoints).add(accrued);
+            if (newFortune > type(uint192).max) revert Logic88_OverflowGuard();
+            p.fortunePoints = uint192(newFortune);
+        }
+
+        uint256 newPrincipal = uint256(p.principal).add(amount);
+        if (newPrincipal > type(uint192).max) revert Logic88_OverflowGuard();
+
+        p.principal = uint192(newPrincipal);
+        if (p.enteredAtBlock == 0) {
+            p.enteredAtBlock = uint64(block.number);
+        }
+        p.lastFortuneBlock = uint64(block.number);
+
+        emit DepositRegistered(msg.sender, poolId, amount, accrued);
+    }
+
+    function withdraw(uint256 poolId, uint256 amount) public breakerGuard {
