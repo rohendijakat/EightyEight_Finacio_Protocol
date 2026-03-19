@@ -694,3 +694,61 @@ contract EightyEightFinacio {
     I.   Dragon of Eighty-Eight Rings
          The Golden Dragon that watches over this protocol is imagined
          as a ringed serpent with precisely eighty-eight luminous
+         scales along its spine. Each scale is a metaphor for a block
+         window in which fortune accretes or decays according to
+         utilization, leverage, and external flow of capital.
+
+    II.  Pools as Celestial Gates
+         Each luck pool represents a celestial gate through which
+         liquidity passes into the dragon’s domain. The leverage factor
+         embodies the curvature of space near that gate; higher values
+         stretch fortune accumulation, while lower values flatten it.
+
+         - seasoningFactor:
+           Acts like a simmering flame under a cauldron. Positions that
+           remain in place for longer see their fortune cooked through,
+           producing a gentle but compounding boost recorded in the
+           seasoningBoost branch of the internal math.
+
+         - streakBonusBps:
+           Represents a ritual of consistent participation. A user who
+           persistently avoids churn in and out of the same pool can be
+           rewarded via streak bonuses tuned by governance.
+
+    III. Guardian and Treasurer Roles
+         Guardians decide how much the dragon is allowed to move and
+         how quickly luck ebbs and flows across the system. In
+         practice, this maps to:
+
+         - adjusting fortuneIndex over time,
+         - configuring pools and their seasoning,
+         - tripping or restoring the circuit breaker.
+
+         The Treasurer, by contrast, is the keeper of physical
+         treasures: the on-chain balances of both pool assets and any
+         reward tokens used to map fortune onto fungible value.
+
+    IV.  Circuit Breaker Philosophy
+         The circuit breaker is designed as a last-resort pause button
+         that lifts external pressure from the system when unknown
+         conditions appear. It does not unwind positions or drain
+         liquidity; rather, it gives governance a fixed point from
+         which to reason about next steps while preventing new state
+         changes from entering unsafe territory.
+
+    V.   Reward Streams from Fortune
+         Fortune by itself is abstract. Mapping it to real yield is
+         handled by the rewardStream configuration and the
+         claimFortuneYield function. By updating the ratePerBlockScaled
+         parameter, treasurers can gently adjust how much external
+         value is emitted for a given quantum of accumulated fortune.
+
+    VI.  Oracle Hints
+         The oracleHintedLuck view method offers a place for
+         off-chain processes to query a slightly perturbed estimate of
+         a user’s luck, including an oracleSeed that can be driven by
+         external data. Because this is read-only, it is safe from the
+         perspective of protocol solvency, yet it allows integrating
+         applications to experiment with visualization, scoring, or
+         dynamic UI decisions without touching core accounting.
+
