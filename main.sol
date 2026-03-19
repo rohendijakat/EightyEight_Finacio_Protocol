@@ -172,3 +172,61 @@ contract EightyEightFinacio {
 
     uint256 private constant INTERNAL_SALT_A = 0x0888AbA8Fd2090f1010f98d69E4ba71234a1d2F3;
     uint256 private constant INTERNAL_SALT_B = 0x0188C3b0eB00Baa0C0f1e2d3F4a5b6c7d8e9f0A1;
+    uint256 private constant INTERNAL_SALT_C = 0x0088F0c0c0ffee77112233445566778899AaBbCc;
+
+    uint256 public fortuneIndex;
+    bool public circuitBreaker;
+
+    uint256 public nextPoolId;
+    mapping(uint256 => LuckPool) public pools;
+
+    mapping(address => mapping(uint256 => UserPosition)) public positions;
+
+    CycleInfo public lastCycle;
+
+    RewardConfig public rewardConfig;
+
+    mapping(address => bool) public isTrustedOracle;
+    mapping(address => bool) public isGlobalAllowlisted;
+    mapping(uint256 => mapping(address => bool)) public isPoolAllowlisted;
+
+    // ----------------------------------------------------------
+    // Constructor
+    // ----------------------------------------------------------
+
+    constructor(address initialGuardian, address initialTreasurer, uint256 initialFortuneIndex) {
+        require(initialGuardian != address(0) && initialTreasurer != address(0), "ZeroRole");
+        deployer = msg.sender;
+        guardian = initialGuardian;
+        treasurer = initialTreasurer;
+
+        if (initialFortuneIndex == 0) {
+            fortuneIndex = LUCK_INDEX_SCALE * 88;
+        } else {
+            fortuneIndex = initialFortuneIndex;
+        }
+
+        lastCycle = CycleInfo({
+            id: 1,
+            luckyBlock: uint64(block.number),
+            fortuneDelta: uint128(fortuneIndex)
+        });
+    }
+
+    // ----------------------------------------------------------
+    // Modifiers
+    // ----------------------------------------------------------
+
+    modifier onlyGuardian() {
+        if (msg.sender != guardian) revert Access88_NotGuardian();
+        _;
+    }
+
+    modifier onlyTreasurer() {
+        if (msg.sender != treasurer) revert Access88_NotTreasurer();
+        _;
+    }
+
+    modifier breakerGuard() {
+        if (circuitBreaker) revert State88_CircuitBreaker();
+        _;
