@@ -56,3 +56,61 @@ library SafeMath88 {
 
     function div(uint256 a, uint256 b) internal pure returns (uint256) {
         require(b != 0, "Math88:DivZero");
+        unchecked {
+            return a / b;
+        }
+    }
+}
+
+contract EightyEightFinacio {
+    using SafeMath88 for uint256;
+
+    // ----------------------------------------------------------
+    // Events
+    // ----------------------------------------------------------
+
+    event GuardianRotated(address indexed previousGuardian, address indexed newGuardian, uint256 atBlock);
+    event TreasurerRotated(address indexed previousTreasurer, address indexed newTreasurer, uint256 atBlock);
+    event FortuneIndexUpdated(uint256 previousIndex, uint256 newIndex, uint256 atBlock);
+    event PoolConfigured(uint256 indexed poolId, address indexed asset, uint96 leverageFactorBps, bool active);
+    event PoolSeasoningUpdated(uint256 indexed poolId, uint64 seasoningFactor, uint64 streakBonusBps);
+    event DepositRegistered(address indexed user, uint256 indexed poolId, uint256 amount, uint256 fortuneMinted);
+    event WithdrawalExecuted(address indexed user, uint256 indexed poolId, uint256 amount, uint256 fortuneBurned);
+    event CircuitBreakerTripped(address indexed signer, uint256 atBlock);
+    event CircuitBreakerRestored(address indexed signer, uint256 atBlock);
+    event TreasurySweep(address indexed caller, address indexed to, uint256 amount, uint256 atBlock);
+    event LuckCycleAdvanced(uint256 indexed cycleId, uint256 luckyBlock, uint256 fortuneDelta);
+    event RewardStreamUpdated(address indexed token, uint256 newRatePerBlock);
+    event FortuneClaimed(address indexed user, address indexed to, uint256 amountScaled, uint256 atBlock);
+
+    // ----------------------------------------------------------
+    // Errors
+    // ----------------------------------------------------------
+
+    error Access88_NotGuardian();
+    error Access88_NotTreasurer();
+    error Access88_NotAllowed();
+    error Config88_InvalidPool();
+    error Config88_PoolInactive();
+    error State88_CircuitBreaker();
+    error Token88_TransferFailed();
+    error Logic88_InsufficientBalance();
+    error Logic88_OverflowGuard();
+    error Param88_Invalid();
+    error Claim88_NothingToClaim();
+
+    // ----------------------------------------------------------
+    // Types
+    // ----------------------------------------------------------
+
+    struct LuckPool {
+        IERC20Like88 asset;
+        uint96 leverageFactorBps;
+        bool active;
+        uint64 seasoningFactor;
+        uint64 streakBonusBps;
+        uint256 poolCap;
+        uint256 minDeposit;
+        bool allowlistedOnly;
+    }
+
