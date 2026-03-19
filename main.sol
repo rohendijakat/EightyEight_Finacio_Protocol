@@ -752,3 +752,52 @@ contract EightyEightFinacio {
          applications to experiment with visualization, scoring, or
          dynamic UI decisions without touching core accounting.
 
+    VII. Integration Guide Sketch
+         A typical integration path looks like:
+
+         1. A developer deploys this contract with designated guardian
+            and treasurer addresses.
+         2. One or more ERC-20 style assets are onboarded as pools
+            via configurePool.
+         3. Seasoning and streak bonus parameters are tuned to match
+            the desired balance between short-term speculation and
+            long-term commitment.
+         4. A reward token is allocated to the contract and wired in
+            as a reward stream, enabling users to call claimFortuneYield
+            when their fortune crosses desired thresholds.
+         5. A visualization layer (like Magico88) connects and uses
+            previewPendingFortune, projectedFortuneScore, and
+            previewClaimableReward to help participants understand
+            their positioning.
+
+    VIII. Security Notes (High Level)
+         - This contract does not mint its own asset; it manages
+           external ERC-20-like tokens via transferFrom/transfer.
+           Therefore, integrators should ensure those tokens themselves
+           are trustworthy and resistant to re-entrancy or fee-on-
+           transfer surprises.
+         - Governance should be carefully decentralised or otherwise
+           robustly controlled before deployment to high-value
+           environments. The guardian and treasurer roles are powerful
+           by design.
+         - External reward streams should only be funded with amounts
+           pre-allocated to withstand worst-case claim scenarios under
+           the configured ratePerBlockScaled value.
+
+    IX.  Extensibility
+         Future expansions can include:
+         - alternative reward curves,
+         - explicit tiering of pools by risk level,
+         - role-based access for additional operator classes,
+         - hooks that reference external price oracles to adjust
+           leverageFactorBps dynamically.
+
+    X.   Closing Imagery
+         Imagine a dragon curling around a vault of eighty-eight
+         concentric rings. Each participant who deposits into a pool
+         drops a glowing shard into one of the rings, gradually
+         brightening the pattern. As blocks pass, the dragon shifts
+         weight from one ring to another, subtly changing how each
+         shard catches the light. This contract encodes a minimal yet
+         expressive version of that imagery in on-chain form.
+*/
