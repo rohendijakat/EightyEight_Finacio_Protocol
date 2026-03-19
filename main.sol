@@ -462,3 +462,61 @@ contract EightyEightFinacio {
         uint256 accumulated = uint256(p.fortunePoints);
         uint256 alreadyClaimed = uint256(p.fortuneClaimed);
         if (accumulated <= alreadyClaimed) revert Claim88_NothingToClaim();
+
+        uint256 deltaFortune = accumulated.sub(alreadyClaimed);
+        uint256 rewardAmountScaled =
+            deltaFortune.mul(r.ratePerBlockScaled).div(LUCK_INDEX_SCALE);
+
+        if (rewardAmountScaled == 0) revert Claim88_NothingToClaim();
+
+        if (rewardAmountScaled > type(uint192).max) revert Logic88_OverflowGuard();
+        p.fortuneClaimed = uint192(accumulated);
+
+        if (!r.token.transfer(to, rewardAmountScaled)) {
+            revert Token88_TransferFailed();
+        }
+
+        emit FortuneClaimed(msg.sender, to, rewardAmountScaled, block.number);
+    }
+
+    // ----------------------------------------------------------
+    // View helpers
+    // ----------------------------------------------------------
+
+    function previewPendingFortune(address user, uint256 poolId) external view returns (uint256) {
+        LuckPool memory pool = pools[poolId];
+        if (!pool.active) return 0;
+        UserPosition memory p = positions[user][poolId];
+        return _pendingFortuneView(p, pool, poolId, block.number);
+    }
+
+    function projectedFortuneScore(address user, uint256 poolId) external view returns (uint256) {
+        LuckPool memory pool = pools[poolId];
+        UserPosition memory p = positions[user][poolId];
+        uint256 pending = _pendingFortuneView(p, pool, poolId, block.number);
+        return uint256(p.fortunePoints).add(pending);
+    }
+
+    function currentLuckCycle() external view returns (CycleInfo memory) {
+        return lastCycle;
+    }
+
+    function previewClaimableReward(address user, uint256 poolId) external view returns (uint256) {
+        RewardConfig memory r = rewardConfig;
+        if (!r.active || address(r.token) == address(0)) {
+            return 0;
+        }
+        LuckPool memory pool = pools[poolId];
+        if (!pool.active) return 0;
+        UserPosition memory p = positions[user][poolId];
+        uint256 pending = _pendingFortuneView(p, pool, poolId, block.number);
+        uint256 totalFortune = uint256(p.fortunePoints).add(pending);
+        uint256 claimed = uint256(p.fortuneClaimed);
+        if (totalFortune <= claimed) return 0;
+        uint256 delta = totalFortune.sub(claimed);
+        return delta.mul(r.ratePerBlockScaled).div(LUCK_INDEX_SCALE);
+    }
+
+    function snapshotPools(uint256[] calldata poolIds) external view returns (PoolSnapshot[] memory out) {
+        uint256 len = poolIds.length;
+        out = new PoolSnapshot[](len);
