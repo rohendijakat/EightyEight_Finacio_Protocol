@@ -404,3 +404,61 @@ contract EightyEightFinacio {
     }
 
     function withdraw(uint256 poolId, uint256 amount) public breakerGuard {
+        LuckPool memory pool = pools[poolId];
+        if (!pool.active) revert Config88_PoolInactive();
+        if (amount == 0) revert Param88_Invalid();
+
+        UserPosition storage p = positions[msg.sender][poolId];
+        if (p.principal < amount) revert Logic88_InsufficientBalance();
+
+        uint256 accrued = _pendingFortune(p, pool, poolId);
+        if (accrued > 0) {
+            uint256 newFortune = uint256(p.fortunePoints).add(accrued);
+            if (newFortune > type(uint192).max) revert Logic88_OverflowGuard();
+            p.fortunePoints = uint192(newFortune);
+        }
+
+        p.principal = uint192(uint256(p.principal).sub(amount));
+        p.lastFortuneBlock = uint64(block.number);
+
+        if (!pool.asset.transfer(msg.sender, amount)) {
+            revert Token88_TransferFailed();
+        }
+
+        emit WithdrawalExecuted(msg.sender, poolId, amount, accrued);
+    }
+
+    function exitAll(uint256 poolId) external breakerGuard {
+        UserPosition storage p = positions[msg.sender][poolId];
+        uint256 principal = p.principal;
+        if (principal == 0) revert Logic88_InsufficientBalance();
+        withdraw(poolId, principal);
+    }
+
+    // ----------------------------------------------------------
+    // Claiming rewards mapped from fortune
+    // ----------------------------------------------------------
+
+    function claimFortuneYield(
+        uint256 poolId,
+        address to
+    ) external breakerGuard {
+        if (to == address(0)) revert Param88_Invalid();
+        RewardConfig memory r = rewardConfig;
+        if (!r.active || address(r.token) == address(0)) revert Claim88_NothingToClaim();
+
+        UserPosition storage p = positions[msg.sender][poolId];
+        LuckPool memory pool = pools[poolId];
+        if (!pool.active) revert Config88_PoolInactive();
+
+        uint256 accrued = _pendingFortune(p, pool, poolId);
+        if (accrued > 0) {
+            uint256 newFortune = uint256(p.fortunePoints).add(accrued);
+            if (newFortune > type(uint192).max) revert Logic88_OverflowGuard();
+            p.fortunePoints = uint192(newFortune);
+            p.lastFortuneBlock = uint64(block.number);
+        }
+
+        uint256 accumulated = uint256(p.fortunePoints);
+        uint256 alreadyClaimed = uint256(p.fortuneClaimed);
+        if (accumulated <= alreadyClaimed) revert Claim88_NothingToClaim();
